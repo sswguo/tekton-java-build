@@ -1,0 +1,1 @@
+The pipeline is used to run a java build against the specific mirror.
