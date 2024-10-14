@@ -1,0 +1,60 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: build-java-project
+spec:
+  params:
+  - name: url
+    type: string
+  - name: mirror
+    type: string
+  workspaces:
+    - name: mvn-ws
+      description: The folder where we store the source code
+  steps:
+  - name: clone-and-build
+    image: quay.io/sswguo/openjdk17-mvn:latest
+    workspaces:
+      - name: mvn-ws
+    computeResources:
+      requests:
+        memory: 2Gi
+        cpu: 500m
+      limits:
+        memory: 8Gi
+        cpu: 2
+    script: |
+      #!/usr/bin/env bash
+      set -xe
+      echo "Locating the repository: $(workspaces.mvn-ws.path)"
+
+      # Clone the repository
+      #git clone $(params.url)
+
+      # Extract the repository name from the URL
+      REPO_NAME=$(basename -s .git $(params.url))
+
+      # Change directory to the cloned repository
+      cd $(workspaces.mvn-ws.path)
+
+      # Create a custom settings.xml
+      cat <<EOF > /workspace/mvn-settings.xml
+      <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                                    http://maven.apache.org/xsd/settings-1.0.0.xsd">
+        <mirrors>
+          <mirror>
+            <id>central</id>
+            <url>$(params.mirror)</url>
+            <mirrorOf>central</mirrorOf>
+          </mirror>
+        </mirrors>
+      </settings>
+      EOF
+      cat /workspace/mvn-settings.xml
+
+      # Run your build commands here (e.g., Maven/Gradle)
+      mvn clean install -s /workspace/mvn-settings.xml -DskipTests # or any other build command
+
+      rm -rf $(workspaces.mvn-ws.path)/*

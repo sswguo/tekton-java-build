@@ -1,0 +1,40 @@
+
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: java-build
+spec:
+  workspaces:
+    - name: mvn-ws
+  params:
+    - name: repo-url
+      type: string
+      description: The URL of the Git repository to clone
+    - name: revision
+      type: string
+    - name: mirror-url
+      type: string
+  tasks:
+    - name: fetch-source
+      taskRef:
+        name: git-clone
+      workspaces:
+      - name: output
+        workspace: mvn-ws
+      params:
+      - name: url
+        value: $(params.repo-url)
+      - name: revision
+        value: $(params.revision)
+    - name: mvn-build
+      taskRef:
+        name: build-java-project
+      workspaces:
+      - name: mvn-ws
+      params:
+      - name: url
+        value: "$(params.repo-url)"
+      - name: mirror
+        value: "$(params.mirror-url)"
+      runAfter:
+       - fetch-source
