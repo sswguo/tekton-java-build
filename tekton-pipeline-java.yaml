@@ -38,3 +38,4 @@ spec:
         value: "$(params.mirror-url)"
       runAfter:
        - fetch-source
+      timeout: "1h30m"
